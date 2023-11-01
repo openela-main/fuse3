@@ -1,0 +1,36 @@
+From 8852a22399b015c784b509308bc9dd25b65a539f Mon Sep 17 00:00:00 2001
+From: Amir Goldstein <amir73il@gmail.com>
+Date: Wed, 2 Jun 2021 12:23:06 +0300
+Subject: [PATCH] test/test_syscalls.c: fix test failure on xfs src dir (#611)
+
+rename dir loop test fails when test tmp dir is xfs with an error
+ test_rename_dir_loop() - rename : File exists
+
+That is because xfs returns EEXIST for the case of renaming over
+a non-empty directory.
+
+According to rename(2) man page, EEXIST and ENOTEMPTY are both valid
+error code in this case.
+
+Signed-off-by: Amir Goldstein <amir73il@gmail.com>
+Signed-off-by: Pavel Reichl <preichl@redhat.com>
+---
+ test/test_syscalls.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/test_syscalls.c b/test/test_syscalls.c
+index 4fa5c87..cd799ce 100644
+--- a/test/test_syscalls.c
++++ b/test/test_syscalls.c
+@@ -1624,7 +1624,7 @@ static int test_rename_dir_loop(void)
+ 
+ 	errno = 0;
+ 	res = rename(PATH("a/b"), PATH2("a/d"));
+-	if (res == 0 || errno != ENOTEMPTY) {
++	if (res == 0 || (errno != ENOTEMPTY && errno != EEXIST)) {
+ 		PERROR("rename");
+ 		goto fail;
+ 	}
+-- 
+2.35.1
+
