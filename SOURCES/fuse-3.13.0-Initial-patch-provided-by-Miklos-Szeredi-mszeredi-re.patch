@@ -1,0 +1,121 @@
+From 8fd95ab0a62a753896fdd3b5fcb68603f0e41ad3 Mon Sep 17 00:00:00 2001
+From: HereThereBeDragons <HereThereBeDragons@users.noreply.github.com>
+Date: Thu, 27 Oct 2022 17:52:10 +0200
+Subject: [PATCH] Initial patch provided by Miklos Szeredi
+ <mszeredi@redhat.com>
+
+Signed-off-by: Pavel Reichl <preichl@redhat.com>
+---
+ include/fuse_kernel.h   |  8 +++++++-
+ include/fuse_lowlevel.h |  8 ++++++++
+ lib/fuse_lowlevel.c     | 18 ++++++++++++++----
+ lib/fuse_versionscript  |  1 +
+ 4 files changed, 30 insertions(+), 5 deletions(-)
+
+diff --git a/include/fuse_kernel.h b/include/fuse_kernel.h
+index 09da620..e0666a1 100644
+--- a/include/fuse_kernel.h
++++ b/include/fuse_kernel.h
+@@ -387,6 +387,12 @@ struct fuse_file_lock {
+  */
+ #define FUSE_FSYNC_FDATASYNC	(1 << 0)
+ 
++/**
++ * notify_inval_entry flags
++ * FUSE_EXPIRE_ONLY
++ */
++#define FUSE_EXPIRE_ONLY		(1 << 0)
++
+ enum fuse_opcode {
+ 	FUSE_LOOKUP		= 1,
+ 	FUSE_FORGET		= 2,  /* no reply */
+@@ -800,7 +806,7 @@ struct fuse_notify_inval_inode_out {
+ struct fuse_notify_inval_entry_out {
+ 	uint64_t	parent;
+ 	uint32_t	namelen;
+-	uint32_t	padding;
++	uint32_t	flags;
+ };
+ 
+ struct fuse_notify_delete_out {
+diff --git a/include/fuse_lowlevel.h b/include/fuse_lowlevel.h
+index b76be71..cceb9be 100644
+--- a/include/fuse_lowlevel.h
++++ b/include/fuse_lowlevel.h
+@@ -1675,6 +1675,14 @@ int fuse_lowlevel_notify_inval_inode(struct fuse_session *se, fuse_ino_t ino,
+ int fuse_lowlevel_notify_inval_entry(struct fuse_session *se, fuse_ino_t parent,
+ 				     const char *name, size_t namelen);
+ 
++enum fuse_expire_flags {
++	FUSE_LL_EXPIRE_ONLY	= (1 << 0),
++};
++
++int fuse_lowlevel_notify_expire_entry(struct fuse_session *se, fuse_ino_t parent,
++                                      const char *name, size_t namelen,
++                                      enum fuse_expire_flags flags);
++
+ /**
+  * This function behaves like fuse_lowlevel_notify_inval_entry() with
+  * the following additional effect (at least as of Linux kernel 4.8):
+diff --git a/lib/fuse_lowlevel.c b/lib/fuse_lowlevel.c
+index e82cd9e..7b9d710 100644
+--- a/lib/fuse_lowlevel.c
++++ b/lib/fuse_lowlevel.c
+@@ -2268,21 +2268,24 @@ int fuse_lowlevel_notify_inval_inode(struct fuse_session *se, fuse_ino_t ino,
+ 	return send_notify_iov(se, FUSE_NOTIFY_INVAL_INODE, iov, 2);
+ }
+ 
+-int fuse_lowlevel_notify_inval_entry(struct fuse_session *se, fuse_ino_t parent,
+-				     const char *name, size_t namelen)
++int fuse_lowlevel_notify_expire_entry(struct fuse_session *se, fuse_ino_t parent,
++				      const char *name, size_t namelen,
++				      enum fuse_expire_flags flags)
+ {
+ 	struct fuse_notify_inval_entry_out outarg;
+ 	struct iovec iov[3];
+ 
+ 	if (!se)
+ 		return -EINVAL;
+-	
++
+ 	if (se->conn.proto_minor < 12)
+ 		return -ENOSYS;
+ 
+ 	outarg.parent = parent;
+ 	outarg.namelen = namelen;
+-	outarg.padding = 0;
++	outarg.flags = 0;
++	if (flags & FUSE_LL_EXPIRE_ONLY)
++		outarg.flags |= FUSE_EXPIRE_ONLY;
+ 
+ 	iov[1].iov_base = &outarg;
+ 	iov[1].iov_len = sizeof(outarg);
+@@ -2292,6 +2295,13 @@ int fuse_lowlevel_notify_inval_entry(struct fuse_session *se, fuse_ino_t parent,
+ 	return send_notify_iov(se, FUSE_NOTIFY_INVAL_ENTRY, iov, 3);
+ }
+ 
++int fuse_lowlevel_notify_inval_entry(struct fuse_session *se, fuse_ino_t parent,
++				     const char *name, size_t namelen)
++{
++	return fuse_lowlevel_notify_expire_entry(se, parent, name, namelen, 0);
++}
++
++
+ int fuse_lowlevel_notify_delete(struct fuse_session *se,
+ 				fuse_ino_t parent, fuse_ino_t child,
+ 				const char *name, size_t namelen)
+diff --git a/lib/fuse_versionscript b/lib/fuse_versionscript
+index a1e9ed8..114f592 100644
+--- a/lib/fuse_versionscript
++++ b/lib/fuse_versionscript
+@@ -166,6 +166,7 @@
+ 	global:
+ 		fuse_set_log_func;
+ 		fuse_log;
++		fuse_lowlevel_notify_expire_entry;
+ } FUSE_3.4;
+ 
+ # Local Variables:
+-- 
+2.41.0
+
