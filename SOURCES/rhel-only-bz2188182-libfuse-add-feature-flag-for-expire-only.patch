@@ -1,0 +1,45 @@
+From: Miklos Szeredi <mszeredi@redhat.com>
+Subject: libfuse: add feature flag for expire-only
+
+Add the FUSE_HAS_EXPIRE_ONLY flag.  This should be used to set the
+FUSE_CAP_EXPIRE_ONLY capability flag on the low level API instead of
+checking for the version.
+
+Checking the version doesn't work if the feature is backported to an
+earlier kernel.
+
+Signed-off-by: Miklos Szeredi <mszeredi@redhat.com>
+---
+ include/fuse_kernel.h |    2 ++
+ lib/fuse_lowlevel.c   |    2 +-
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+--- a/include/fuse_kernel.h
++++ b/include/fuse_kernel.h
+@@ -274,6 +274,7 @@
+  * FUSE_CACHE_SYMLINKS: cache READLINK responses
+  * FUSE_NO_OPENDIR_SUPPORT: kernel supports zero-message opendir
+  * FUSE_EXPLICIT_INVAL_DATA: only invalidate cached pages on explicit request
++ * FUSE_HAS_EXPIRE_ONLY: kernel supports expiry-only entry invalidation
+  */
+ #define FUSE_ASYNC_READ		(1 << 0)
+ #define FUSE_POSIX_LOCKS	(1 << 1)
+@@ -302,6 +303,7 @@
+ #define FUSE_NO_OPENDIR_SUPPORT (1 << 24)
+ #define FUSE_EXPLICIT_INVAL_DATA (1 << 25)
+ #define FUSE_INIT_EXT		(1 << 30)
++#define FUSE_HAS_EXPIRE_ONLY	(1ULL << 35)
+ 
+ /**
+  * CUSE INIT request/reply flags
+--- a/lib/fuse_lowlevel.c
++++ b/lib/fuse_lowlevel.c
+@@ -2008,7 +2008,7 @@ void do_init(fuse_req_t req, fuse_ino_t
+ 				bufsize = max_bufsize;
+ 			}
+ 		}
+-		if (arg->minor >= 38)
++		if (inargflags & FUSE_HAS_EXPIRE_ONLY)
+ 			se->conn.capable |= FUSE_CAP_EXPIRE_ONLY;
+ 	} else {
+ 		se->conn.max_readahead = 0;

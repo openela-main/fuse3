@@ -1,13 +1,17 @@
 Name:		fuse3
 Version:	3.10.2
-Release:	5%{?dist}
+Release:	6%{?dist}
 Summary:	File System in Userspace (FUSE) v3 utilities
 License:	GPL+
 URL:		http://fuse.sf.net
 Source0:	https://github.com/libfuse/libfuse/archive/fuse-%{version}.tar.gz
 Source1:	fuse.conf
-Patch0:         fuse3-gcc11.patch
-Patch1:         fuse-3.10.4-fix-test-failure.patch
+Patch0:		fuse3-gcc11.patch
+Patch1:		fuse-3.10.4-fix-test-failure.patch
+Patch2:		fuse-3.11.0-Modify-structures-in-libfuse-to-handle-flags-beyond-.patch
+Patch3:		fuse-3.13.0-Initial-patch-provided-by-Miklos-Szeredi-mszeredi-re.patch
+Patch4:		fuse-3.13.0-adding-comments-and-capability-discovery-enum-for-fl.patch
+Patch5:		rhel-only-bz2188182-libfuse-add-feature-flag-for-expire-only.patch
 
 BuildRequires:	which
 %if ! 0%{?el6}
@@ -71,6 +75,10 @@ Common files for FUSE v2 and FUSE v3.
 %setup -n libfuse-fuse-%{version}
 %patch0 -p1
 %patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
 
 %build
 export LC_ALL=en_US.UTF-8
@@ -160,6 +168,9 @@ rm -f %{buildroot}/usr/lib/udev/rules.d/99-fuse3.rules
 %endif
 
 %changelog
+* Thu Jul 13 2023 Pavel Reichl <preichl@redhat.com> - 3.10.2-6
+- Fix feature_notify_inode_expire_only related(rhbz#2188182)
+
 * Wed Feb 16 2022 Pavel Reichl <preichl@redhat.com> - 3.10.2-5
 - Fix test failure
 - Fix missing dependency
