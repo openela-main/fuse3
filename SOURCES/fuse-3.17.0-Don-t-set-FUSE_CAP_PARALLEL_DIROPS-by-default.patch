@@ -1,0 +1,42 @@
+From 2c736f516f28dfb5c58aff345c668a5ea6386295 Mon Sep 17 00:00:00 2001
+From: Miklos Szeredi <mszeredi@redhat.com>
+Date: Wed, 10 Jan 2024 10:15:43 +0100
+Subject: [PATCH] Don't set FUSE_CAP_PARALLEL_DIROPS by default
+
+Allowing parallel dir operations could result in a crash in a filesystem
+implementation that is not prepared for this.
+
+To be safe keep this flag off by default (this is not a regression, since
+there was no public release where this flag wasn't ignored).
+
+If the filesystem wants better performance, then it should set this flag
+explicitly.
+
+Fixes: c9905341ea34 ("Pass FUSE_PARALLEL_DIROPS to kernel (#861)")
+Signed-off-by: Miklos Szeredi <mszeredi@redhat.com>
+---
+ include/fuse_common.h |    2 --
+ lib/fuse_lowlevel.c   |    1 -
+ 2 files changed, 3 deletions(-)
+
+--- a/include/fuse_common.h
++++ b/include/fuse_common.h
+@@ -313,8 +313,6 @@ struct fuse_loop_config {
+  * is unset, the FUSE kernel module will ensure that lookup() and
+  * readdir() requests are never issued concurrently for the same
+  * directory.
+- *
+- * This feature is enabled by default when supported by the kernel.
+  */
+ #define FUSE_CAP_PARALLEL_DIROPS        (1 << 18)
+ 
+--- a/lib/fuse_lowlevel.c
++++ b/lib/fuse_lowlevel.c
+@@ -2009,7 +2009,6 @@ void do_init(fuse_req_t req, fuse_ino_t
+ 	if ((cond) && (se->conn.capable & (cap))) \
+ 		se->conn.want |= (cap)
+ 	LL_SET_DEFAULT(1, FUSE_CAP_ASYNC_READ);
+-	LL_SET_DEFAULT(1, FUSE_CAP_PARALLEL_DIROPS);
+ 	LL_SET_DEFAULT(1, FUSE_CAP_AUTO_INVAL_DATA);
+ 	LL_SET_DEFAULT(1, FUSE_CAP_HANDLE_KILLPRIV);
+ 	LL_SET_DEFAULT(1, FUSE_CAP_ASYNC_DIO);

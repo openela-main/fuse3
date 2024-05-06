@@ -1,0 +1,23 @@
+From c9905341ea34ff9acbc11b3c53ba8bcea35eeed8 Mon Sep 17 00:00:00 2001
+From: fdinoff <fdinoff@google.com>
+Date: Thu, 16 Nov 2023 06:23:20 -0500
+Subject: [PATCH] Pass FUSE_PARALLEL_DIROPS to kernel (#861)
+
+This tells the kernel that parallel lookup/readdir operations are
+supported. This is enabled by default but was not passed to the kernel
+so you always get the synchronized version.
+---
+ lib/fuse_lowlevel.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+--- a/lib/fuse_lowlevel.c
++++ b/lib/fuse_lowlevel.c
+@@ -2093,6 +2093,8 @@ void do_init(fuse_req_t req, fuse_ino_t
+ 		outargflags |= FUSE_ASYNC_DIO;
+ 	if (se->conn.want & FUSE_CAP_WRITEBACK_CACHE)
+ 		outargflags |= FUSE_WRITEBACK_CACHE;
++	if (se->conn.want & FUSE_CAP_PARALLEL_DIROPS)
++		outargflags |= FUSE_PARALLEL_DIROPS;
+ 	if (se->conn.want & FUSE_CAP_POSIX_ACL)
+ 		outargflags |= FUSE_POSIX_ACL;
+ 	if (se->conn.want & FUSE_CAP_CACHE_SYMLINKS)
