@@ -1,6 +1,6 @@
 Name:		fuse3
 Version:	3.10.2
-Release:	8%{?dist}
+Release:	9%{?dist}
 Summary:	File System in Userspace (FUSE) v3 utilities
 License:	GPL+
 URL:		http://fuse.sf.net
@@ -15,6 +15,7 @@ Patch5:		rhel-only-bz2188182-libfuse-add-feature-flag-for-expire-only.patch
 Patch6:		fuse-3.16.1-Make-expire-only-function-fail-if-no-kernel-support-.patch
 Patch7:		fuse-3.17.0-Pass-FUSE_PARALLEL_DIROPS-to-kernel-861.patch
 Patch8:		fuse-3.17.0-Don-t-set-FUSE_CAP_PARALLEL_DIROPS-by-default.patch
+Patch9:		master-libfuse-null-terminate-buffer-in-fuse_req_getgroups.patch
 
 BuildRequires:	which
 %if ! 0%{?el6}
@@ -85,6 +86,7 @@ Common files for FUSE v2 and FUSE v3.
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1
+%patch9 -p1
 
 %build
 export LC_ALL=en_US.UTF-8
@@ -174,6 +176,9 @@ rm -f %{buildroot}/usr/lib/udev/rules.d/99-fuse3.rules
 %endif
 
 %changelog
+* Mon Jun 17 2024 Pavel Reichl <preichl@redhat.com> - 3.10.2-9
+- libfuse: null-terminate buffer in fuse_req_getgroups()
+
 * Wed Feb 07 2024 Pavel Reichl <preichl@redhat.com> - 3.10.2-8
 - Advertise support of FUSE_PARALLEL_DIROPS to kernel
 - Related: RHEL-24721

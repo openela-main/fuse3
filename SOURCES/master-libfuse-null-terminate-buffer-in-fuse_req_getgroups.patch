@@ -1,0 +1,35 @@
+From 29f621af8d39d5a140da584ff6c1eb00147b5a56 Mon Sep 17 00:00:00 2001
+From: Miklos Szeredi <mszeredi@redhat.com>
+Date: Thu, 13 Jun 2024 13:57:25 +0200
+Subject: [PATCH] libfuse: null-terminate buffer in fuse_req_getgroups()
+
+After reading the file /proc/$PID/task/$PID/status the buffer wasn't
+terminated with a null character.  This could theoretically lead to buffer
+overrun by the subsequent strstr() call.
+
+Since the contents of the proc file are guaranteed to contain the pattern
+that strstr is looking for, this doesn't happen in normal situations.
+
+Add null termination for robustness.
+
+Signed-off-by: Miklos Szeredi <mszeredi@redhat.com>
+Signed-off-by: Pavel Reichl <preichl@redhat.com>
+---
+ lib/fuse_lowlevel.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/fuse_lowlevel.c b/lib/fuse_lowlevel.c
+index fc46882..74b0424 100644
+--- a/lib/fuse_lowlevel.c
++++ b/lib/fuse_lowlevel.c
+@@ -3353,6 +3353,7 @@ retry:
+ 		goto retry;
+ 	}
+ 
++	buf[ret] = '\0';
+ 	ret = -EIO;
+ 	s = strstr(buf, "\nGroups:");
+ 	if (s == NULL)
+-- 
+2.45.2
+
